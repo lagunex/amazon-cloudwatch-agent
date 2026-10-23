@@ -132,7 +132,7 @@ func Factories() (otelcol.Factories, error) {
 		return otelcol.Factories{}, err
 	}
 
-	if factories.Processors, err = otelcol.MakeFactoryMap[processor.Factory](
+	processors := []processor.Factory{
 		attributesprocessor.NewFactory(),
 		attributestocontextprocessor.NewFactory(),
 		awsapplicationsignals.NewFactory(),
@@ -163,7 +163,8 @@ func Factories() (otelcol.Factories, error) {
 		spanprocessor.NewFactory(),
 		tailsamplingprocessor.NewFactory(),
 		transformprocessor.NewFactory(),
-	); err != nil {
+	}
+	if factories.Processors, err = otelcol.MakeFactoryMap(append(processors, osProcessors()...)...); err != nil {
 		return otelcol.Factories{}, err
 	}
 

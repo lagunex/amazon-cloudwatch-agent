@@ -130,6 +130,7 @@ require (
 	github.com/google/go-cmp v0.7.0
 	github.com/google/uuid v1.6.0
 	github.com/hashicorp/golang-lru v1.0.2
+	github.com/ianlancetaylor/demangle v0.0.0-20250417193237-f615e6bd150b
 	github.com/influxdata/telegraf v0.0.0-00010101000000-000000000000
 	github.com/influxdata/wlog v0.0.0-20160411224016-7c63b0a71ef8
 	github.com/jellydator/ttlcache/v3 v3.3.0
@@ -639,7 +640,7 @@ require (
 	go.opentelemetry.io/collector/connector/xconnector v0.150.0 // indirect
 	go.opentelemetry.io/collector/consumer/consumererror v0.150.0 // indirect
 	go.opentelemetry.io/collector/consumer/consumererror/xconsumererror v0.150.0 // indirect
-	go.opentelemetry.io/collector/consumer/xconsumer v0.150.0 // indirect
+	go.opentelemetry.io/collector/consumer/xconsumer v0.150.0
 	go.opentelemetry.io/collector/exporter/exporterhelper/xexporterhelper v0.150.0 // indirect
 	go.opentelemetry.io/collector/exporter/xexporter v0.150.0 // indirect
 	go.opentelemetry.io/collector/extension/extensionmiddleware v0.150.0 // indirect
@@ -650,12 +651,12 @@ require (
 	go.opentelemetry.io/collector/internal/memorylimiter v0.150.0 // indirect
 	go.opentelemetry.io/collector/internal/sharedcomponent v0.150.0 // indirect
 	go.opentelemetry.io/collector/internal/telemetry v0.150.0 // indirect
-	go.opentelemetry.io/collector/pdata/pprofile v0.150.0 // indirect
+	go.opentelemetry.io/collector/pdata/pprofile v0.150.0
 	go.opentelemetry.io/collector/pdata/testdata v0.150.0 // indirect
 	go.opentelemetry.io/collector/pdata/xpdata v0.150.0 // indirect
 	go.opentelemetry.io/collector/pipeline/xpipeline v0.150.0 // indirect
-	go.opentelemetry.io/collector/processor/processorhelper/xprocessorhelper v0.150.0 // indirect
-	go.opentelemetry.io/collector/processor/xprocessor v0.150.0 // indirect
+	go.opentelemetry.io/collector/processor/processorhelper/xprocessorhelper v0.150.0
+	go.opentelemetry.io/collector/processor/xprocessor v0.150.0
 	go.opentelemetry.io/collector/receiver/receiverhelper v0.150.0 // indirect
 	go.opentelemetry.io/collector/receiver/xreceiver v0.150.0 // indirect
 	go.opentelemetry.io/collector/service/hostcapabilities v0.150.0 // indirect

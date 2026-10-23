@@ -87,6 +87,7 @@ func TestComponents(t *testing.T) {
 		"tail_sampling",
 		"transform",
 	}
+	wantProcessors = append(wantProcessors, osProcessorTypes...)
 	gotProcessors := collections.MapSlice(maps.Keys(factories.Processors), component.Type.String)
 	assert.Equal(t, len(wantProcessors), len(gotProcessors))
 	for _, typeStr := range wantProcessors {
