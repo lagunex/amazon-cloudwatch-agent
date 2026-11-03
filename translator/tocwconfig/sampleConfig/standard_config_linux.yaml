@@ -36,7 +36,7 @@ processors:
         entity_type: Resource
         platform: ec2
         scrape_datapoint_attribute: true
-    cumulativetodelta/hostDeltaMetrics:
+    cumulative_to_delta/hostDeltaMetrics:
         exclude:
             match_type: strict
             metrics:
@@ -51,9 +51,9 @@ processors:
         ec2_instance_tag_keys:
             - AutoScalingGroupName
         ec2_metadata_tags:
+            - InstanceType
             - ImageId
             - InstanceId
-            - InstanceType
         middleware: agenthealth/statuscode
         refresh_tags_interval: 0s
         refresh_volumes_interval: 0s
@@ -91,15 +91,15 @@ service:
                 - ec2tagger
                 - awsentity/resource
             receivers:
-                - telegraf_mem
                 - telegraf_swap
                 - telegraf_cpu
                 - telegraf_disk
+                - telegraf_mem
         metrics/hostDeltaMetrics:
             exporters:
                 - awscloudwatch
             processors:
-                - cumulativetodelta/hostDeltaMetrics
+                - cumulative_to_delta/hostDeltaMetrics
                 - ec2tagger
                 - awsentity/resource
             receivers:

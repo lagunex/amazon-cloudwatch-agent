@@ -10,3 +10,7 @@ dimensions:
   - name: rpc.grpc.status_code
   - name: rpc.response.status_code
   - name: error.type
+# collector.instance.id became a default dimension upstream (v0.152.0). Its value is a fresh UUID on every
+# agent start, so keeping it would start new series on each restart.
+exclude_dimensions:
+  - collector.instance.id

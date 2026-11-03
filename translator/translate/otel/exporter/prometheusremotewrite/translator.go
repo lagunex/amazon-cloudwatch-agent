@@ -46,10 +46,13 @@ func (t *translator) Translate(conf *confmap.Conf) (component.Config, error) {
 		return nil, &common.MissingKeyError{ID: t.ID(), JsonKey: AMPSectionKey + " or " + common.ConfigKey(AMPSectionKey, common.WorkspaceIDKey)}
 	}
 	cfg := t.factory.CreateDefaultConfig().(*prometheusremotewriteexporter.Config)
-	cfg.ClientConfig.Auth = configoptional.Some(configauth.Config{AuthenticatorID: component.NewID(component.MustNewType(common.SigV4Auth))})
-	cfg.ResourceToTelemetrySettings = resourcetotelemetry.Settings{Enabled: true, ClearAfterCopy: true}
+	cfg.HTTP.Auth = configoptional.Some(configauth.Config{AuthenticatorID: component.NewID(component.MustNewType(common.SigV4Auth))})
+	// Copy every resource attribute onto the series and clear it afterwards. resource_constant_labels replaces the
+	// deprecated resource_to_telemetry_conversion block; including "*" behaves exactly like its enabled mode.
+	cfg.ResourceConstantLabels = resourcetotelemetry.Settings{Included: []string{"*"}, ClearAfterCopy: true}
 	// Disable metric name type/unit suffixes (e.g. _total, _ratio) and otel_scope_* info labels to preserve backward-compatible AMP metrics.
-	cfg.AddMetricSuffixes = false
+	// The translation strategy replaces the deprecated add_metric_suffixes: false and yields the same names.
+	cfg.TranslationStrategy = "UnderscoreEscapingWithoutSuffixes"
 	cfg.DisableScopeInfo = true
 	// ignoring bool return value since we are checking with isSet beforehand
 	value, _ := common.GetString(conf, common.ConfigKey(AMPSectionKey, common.WorkspaceIDKey))
@@ -59,6 +62,10 @@ func (t *translator) Translate(conf *confmap.Conf) (component.Config, error) {
 	}
 	ampEndpoint := "https://aps-workspaces." + agent.Global_Config.Region + "." + domain + "/workspaces/" + value + "/api/v1/remote_write"
 
-	cfg.ClientConfig.Endpoint = ampEndpoint
+	cfg.HTTP.Endpoint = ampEndpoint
+	// The exporter sends with the nested http block, which takes precedence over the deprecated
+	// squashed client settings whenever "http" is present in the YAML. The generated config always
+	// contains it, so mirror the same settings into the squashed block to keep both paths identical.
+	cfg.ClientConfig = cfg.HTTP
 	return cfg, nil
 }

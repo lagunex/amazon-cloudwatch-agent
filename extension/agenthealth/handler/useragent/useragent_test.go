@@ -78,6 +78,39 @@ func TestSetComponents(t *testing.T) {
 	assert.Equal(t, "inputs:(cpu logs prometheus run_as_user)", ua.inputsStr.Load())
 }
 
+// TestSetComponentsLegacyNames keeps the User-Agent tokens stable for components that upstream
+// renamed to snake_case: the renamed types are reported under their historical names.
+func TestSetComponentsLegacyNames(t *testing.T) {
+	otelCfg := &otelcol.Config{
+		Service: service.Config{
+			Pipelines: map[pipeline.ID]*pipelines.PipelineConfig{
+				pipeline.NewID(pipeline.SignalMetrics): {
+					Receivers: []component.ID{
+						component.MustNewID("host_metrics"),
+						component.MustNewIDWithName("kubelet_stats", "ci"),
+					},
+					Processors: []component.ID{
+						component.MustNewID("cumulative_to_delta"),
+						component.MustNewID("delta_to_rate"),
+						component.MustNewID("metrics_transform"),
+						component.MustNewIDWithName("resource_detection", "ci"),
+					},
+					Exporters: []component.ID{
+						component.MustNewID("prometheus_remote_write"),
+						component.MustNewID("awsemf"),
+					},
+				},
+			},
+		},
+	}
+	ua := newUserAgent()
+	ua.isRoot = true
+	ua.SetComponents(otelCfg, &telegraf.Config{})
+	assert.Equal(t, "inputs:(hostmetrics kubeletstats)", ua.inputsStr.Load())
+	assert.Equal(t, "processors:(cumulativetodelta deltatorate metricstransform resourcedetection)", ua.processorsStr.Load())
+	assert.Equal(t, "outputs:(awsemf prometheusremotewrite)", ua.outputsStr.Load())
+}
+
 func TestSetComponentsEmpty(t *testing.T) {
 	ua := newUserAgent()
 	ua.SetComponents(&otelcol.Config{}, &telegraf.Config{})

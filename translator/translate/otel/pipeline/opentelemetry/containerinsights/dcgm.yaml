@@ -152,7 +152,7 @@ processors:
       - set(attributes["cloudwatch.source"], "cloudwatch-agent")
       - set(attributes["cloudwatch.solution"], "k8s-otel-container-insights")
       - set(attributes["cloudwatch.pipeline"], "dcgm")
-  resourcedetection/cw_k8s_ci_v0:
+  resource_detection/cw_k8s_ci_v0:
     detectors: [eks, env, ec2]
     override: false
     timeout: 2s
@@ -217,7 +217,7 @@ service:
       - transform/cw_k8s_ci_v0_promote_node_name
       - k8sattributes/cw_k8s_ci_v0_node
       - transform/cw_k8s_ci_v0_set_scope_dcgm
-      - resourcedetection/cw_k8s_ci_v0
+      - resource_detection/cw_k8s_ci_v0
       - transform/cw_k8s_ci_v0_set_cloud_resource_id
       - transform/cw_k8s_ci_v0_set_workload
       - awsattributelimit/cw_k8s_ci_v0

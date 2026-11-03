@@ -108,7 +108,7 @@ processors:
     - context: datapoint
       statements:
       - set(resource.attributes["k8s.node.name"], attributes["node_name"]) where attributes["node_name"] != nil
-  resourcedetection/cw_k8s_ci_v0:
+  resource_detection/cw_k8s_ci_v0:
     detectors: [eks, env, ec2]
     override: false
     timeout: 2s
@@ -229,7 +229,7 @@ service:
       - transform/cw_k8s_ci_v0_cadvisor_promote
       - transform/cw_k8s_ci_v0_set_node_name
       - transform/cw_k8s_ci_v0_promote_node_name
-      - resourcedetection/cw_k8s_ci_v0
+      - resource_detection/cw_k8s_ci_v0
       - transform/cw_k8s_ci_v0_set_cloud_resource_id
       - k8sattributes/cw_k8s_ci_v0_node
       - k8sattributes/cw_k8s_ci_v0_pod

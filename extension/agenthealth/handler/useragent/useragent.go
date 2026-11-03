@@ -14,6 +14,7 @@ import (
 	telegraf "github.com/influxdata/telegraf/config"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/exporter/awsemfexporter"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/jmxreceiver"
+	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/otelcol"
 	"go.uber.org/atomic"
 	"golang.org/x/exp/maps"
@@ -101,7 +102,7 @@ func (ua *userAgent) SetComponents(otelCfg *otelcol.Config, telegrafCfg *telegra
 	for _, pipeline := range otelCfg.Service.Pipelines {
 		for _, receiver := range pipeline.Receivers {
 			// trim the adapter prefix from adapted Telegraf plugins
-			name := strings.TrimPrefix(receiver.Type().String(), adapter.TelegrafPrefix)
+			name := strings.TrimPrefix(legacyComponentName(receiver.Type()), adapter.TelegrafPrefix)
 			ua.inputs.Add(name)
 			if name == common.JmxKey {
 				cfg, ok := otelCfg.Receivers[receiver].(*jmxreceiver.Config)
@@ -115,10 +116,10 @@ func (ua *userAgent) SetComponents(otelCfg *otelcol.Config, telegrafCfg *telegra
 			}
 		}
 		for _, processor := range pipeline.Processors {
-			ua.processors.Add(processor.Type().String())
+			ua.processors.Add(legacyComponentName(processor.Type()))
 		}
 		for _, exporter := range pipeline.Exporters {
-			ua.outputs.Add(exporter.Type().String())
+			ua.outputs.Add(legacyComponentName(exporter.Type()))
 			if exporter.Type().String() == "awsemf" {
 				cfg, ok := otelCfg.Exporters[exporter].(*awsemfexporter.Config)
 				if ok {
@@ -264,4 +265,27 @@ func Get() UserAgent {
 		singleton = newUserAgent()
 	})
 	return singleton
+}
+
+// legacyComponentTypes maps the component types that upstream OpenTelemetry renamed to snake_case
+// (each keeps a deprecated alias) back to the names the agent has always reported. This keeps the
+// User-Agent feature tokens stable across collector upgrades.
+var legacyComponentTypes = map[string]string{
+	"cumulative_to_delta":     "cumulativetodelta",
+	"delta_to_cumulative":     "deltatocumulative",
+	"delta_to_rate":           "deltatorate",
+	"host_metrics":            "hostmetrics",
+	"kubelet_stats":           "kubeletstats",
+	"metrics_transform":       "metricstransform",
+	"prometheus_remote_write": "prometheusremotewrite",
+	"resource_detection":      "resourcedetection",
+	"span_metrics":            "spanmetrics",
+}
+
+func legacyComponentName(t component.Type) string {
+	name := t.String()
+	if legacy, ok := legacyComponentTypes[name]; ok {
+		return legacy
+	}
+	return name
 }

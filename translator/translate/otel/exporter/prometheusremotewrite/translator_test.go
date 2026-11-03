@@ -20,7 +20,7 @@ import (
 func TestTranslator(t *testing.T) {
 	agent.Global_Config.Region = "us-east-1"
 	tt := NewTranslatorWithName("test")
-	require.EqualValues(t, "prometheusremotewrite/test", tt.ID().String())
+	require.EqualValues(t, "prometheus_remote_write/test", tt.ID().String())
 
 	testCases := map[string]struct {
 		input   map[string]interface{}
@@ -59,7 +59,8 @@ func TestTranslator(t *testing.T) {
 				require.NotNil(t, got)
 				gotCfg, ok := got.(*prometheusremotewriteexporter.Config)
 				require.True(t, ok)
-				wantCfg := &prometheusremotewriteexporter.Config{}
+				// Expected = exporter defaults + the AMP-specific settings in testdata/config.yaml.
+				wantCfg := prometheusremotewriteexporter.NewFactory().CreateDefaultConfig().(*prometheusremotewriteexporter.Config)
 				require.NoError(t, testCase.want.Unmarshal(wantCfg))
 				assert.Equal(t, wantCfg, gotCfg)
 			}
@@ -119,6 +120,35 @@ func TestTranslatorDualStackEndpoint(t *testing.T) {
 			gotCfg, ok := got.(*prometheusremotewriteexporter.Config)
 			require.True(t, ok)
 			assert.Equal(t, testCase.expectedEndpoint, gotCfg.ClientConfig.Endpoint)
+			assert.Equal(t, testCase.expectedEndpoint, gotCfg.HTTP.Endpoint)
 		})
 	}
+}
+
+// TestTranslatorHTTPBlockRoundTrip guards the exporter's nested http block: it takes precedence over the
+// squashed client settings whenever "http" is present in the YAML, which the generated config always has.
+// The AMP endpoint and SigV4 auth must therefore survive a marshal/unmarshal round trip inside it,
+// otherwise remote write would target the factory's placeholder URL without signing.
+func TestTranslatorHTTPBlockRoundTrip(t *testing.T) {
+	agent.Global_Config.Region = "us-east-1"
+	agent.Global_Config.UseDualStackEndpoint = false
+	tt := NewTranslatorWithName("roundtrip")
+	got, err := tt.Translate(confmap.NewFromStringMap(map[string]interface{}{
+		"metrics": map[string]interface{}{
+			"metrics_destinations": map[string]interface{}{
+				"amp": map[string]interface{}{"workspace_id": "ws-12345678"},
+			},
+		},
+	}))
+	require.NoError(t, err)
+
+	marshaled := confmap.New()
+	require.NoError(t, marshaled.Marshal(got))
+	require.True(t, marshaled.IsSet("http"))
+	loaded := prometheusremotewriteexporter.NewFactory().CreateDefaultConfig().(*prometheusremotewriteexporter.Config)
+	require.NoError(t, marshaled.Unmarshal(loaded))
+
+	assert.Equal(t, "https://aps-workspaces.us-east-1.amazonaws.com/workspaces/ws-12345678/api/v1/remote_write", loaded.HTTP.Endpoint)
+	require.True(t, loaded.HTTP.Auth.HasValue())
+	assert.Equal(t, common.SigV4Auth, loaded.HTTP.Auth.Get().AuthenticatorID.Type().String())
 }

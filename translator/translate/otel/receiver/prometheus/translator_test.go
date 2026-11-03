@@ -14,9 +14,7 @@ import (
 	promconfig "github.com/prometheus/prometheus/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"go.opentelemetry.io/collector/config/confighttp"
 	"go.opentelemetry.io/collector/config/configoptional"
-	"go.opentelemetry.io/collector/config/configtls"
 	"go.opentelemetry.io/collector/confmap"
 
 	"github.com/aws/amazon-cloudwatch-agent/internal/util/testutil"
@@ -49,24 +47,25 @@ func TestTranslator(t *testing.T) {
 			input:    testutil.GetJson(t, filepath.Join("testdata", "config.json")),
 			wantID:   "prometheus",
 			promYAML: filepath.Join("testdata", "config_prom.yaml"), // same scrape content, just without OTel wrapper
-			wantTA: configoptional.Some(targetallocator.Config{
-				CollectorID: "col-1234",
-				ClientConfig: confighttp.ClientConfig{
-					TLS: configtls.ClientConfig{
-						Config: configtls.Config{
-							CAFile:         defaultTLSCaPath,
-							CertFile:       defaultTLSCertPath,
-							KeyFile:        defaultTLSKeyPath,
-							ReloadInterval: 10 * time.Second,
-						},
-					},
-				},
-			}),
+			wantTA: func() configoptional.Optional[targetallocator.Config] {
+				// Start from the receiver defaults (the target allocator HTTP client now carries
+				// keepalive and HTTP/2 defaults), apply the collector_id from the input YAML the
+				// same way the translator does, then the TLS defaults the translator adds.
+				ta := defaultTargetAllocator()
+				require.NoError(t, confmap.NewFromStringMap(map[string]any{"collector_id": "col-1234"}).Unmarshal(&ta))
+				cfg := ta.Get()
+				cfg.ClientConfig.TLS.CAFile = defaultTLSCaPath
+				cfg.ClientConfig.TLS.CertFile = defaultTLSCertPath
+				cfg.ClientConfig.TLS.KeyFile = defaultTLSKeyPath
+				cfg.ClientConfig.TLS.ReloadInterval = 10 * time.Second
+				return ta
+			}(),
 		},
 		"WithPromConfig": {
 			input:    testutil.GetJson(t, filepath.Join("testdata", "config_prom.json")),
 			wantID:   "prometheus",
 			promYAML: filepath.Join("testdata", "config_prom.yaml"),
+			wantTA:   defaultTargetAllocator(),
 		},
 	}
 	for name, testCase := range testCases {
@@ -91,4 +90,9 @@ func TestTranslator(t *testing.T) {
 			}
 		})
 	}
+}
+
+// defaultTargetAllocator returns the receiver's default (unset) target allocator configuration.
+func defaultTargetAllocator() configoptional.Optional[targetallocator.Config] {
+	return prometheusreceiver.NewFactory().CreateDefaultConfig().(*prometheusreceiver.Config).TargetAllocator
 }

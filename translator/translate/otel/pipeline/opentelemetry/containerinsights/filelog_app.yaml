@@ -39,7 +39,7 @@ processors:
   # Standard CI resourcedetection (same as metrics sources) — the shared pipeline
   # stamps cloud/host attributes anyway; kept identical across pipelines to avoid
   # a same-ID definition conflict when metrics and logs coexist.
-  resourcedetection/cw_k8s_ci_v0:
+  resource_detection/cw_k8s_ci_v0:
     detectors: [eks, env, ec2]
     override: false
     timeout: 2s
@@ -155,7 +155,7 @@ service:
       - filelog/cw_k8s_ci_v0_app
       processors:
       - transform/cw_k8s_ci_v0_logs_set_cluster_and_node
-      - resourcedetection/cw_k8s_ci_v0
+      - resource_detection/cw_k8s_ci_v0
       - transform/cw_k8s_ci_v0_logs_set_cloud_resource_id
       - k8sattributes/cw_k8s_ci_v0_node
       - k8sattributes/cw_k8s_ci_v0_pod

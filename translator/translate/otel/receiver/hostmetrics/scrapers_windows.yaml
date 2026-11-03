@@ -4,8 +4,13 @@ cpu:
       enabled: true
     system.cpu.physical.count:
       enabled: true
+    # Keep per-CPU series: upstream made the cpu attribute opt-in for these metrics (v0.157.0).
+    system.cpu.time:
+      enabled: true
+      attributes: [cpu, state]
     system.cpu.utilization:
       enabled: true
+      attributes: [cpu, state]
 disk:
 filesystem:
   metrics:

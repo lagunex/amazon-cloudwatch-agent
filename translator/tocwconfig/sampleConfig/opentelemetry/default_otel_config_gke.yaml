@@ -1,22 +1,32 @@
 connectors:
     forward/opentelemetry: {}
-    spanmetrics/opentelemetry:
+    span_metrics/opentelemetry:
         add_resource_attributes: true
         aggregation_cardinality_limit: 0
         aggregation_temporality: AGGREGATION_TEMPORALITY_CUMULATIVE
         dimensions:
-            - name: http.response.status_code
-            - name: http.request.method
-            - name: http.route
-            - name: http.status_code
-            - name: http.method
-            - name: rpc.grpc.status_code
-            - name: rpc.response.status_code
-            - name: error.type
+            - glob: ""
+              name: http.response.status_code
+            - glob: ""
+              name: http.request.method
+            - glob: ""
+              name: http.route
+            - glob: ""
+              name: http.status_code
+            - glob: ""
+              name: http.method
+            - glob: ""
+              name: rpc.grpc.status_code
+            - glob: ""
+              name: rpc.response.status_code
+            - glob: ""
+              name: error.type
         dimensions_cache_size: 0
         enable_metrics_sampling_method: false
         events:
             enabled: false
+        exclude_dimensions:
+            - collector.instance.id
         exemplars:
             enabled: false
             max_per_data_point: 5
@@ -27,6 +37,7 @@ connectors:
         metrics_flush_interval: 30s
         namespace: traces.span.metrics
         resource_metrics_cache_size: 1000
+        series_expiration: 0s
 exporters:
     otlp_http/logs:
         auth:
@@ -34,9 +45,10 @@ exporters:
         compression: gzip
         encoding: proto
         force_attempt_http2: true
-        idle_conn_timeout: 1m30s
+        keepalive:
+            idle_conn_timeout: 1m30s
+            max_idle_conns: 100
         logs_endpoint: https://logs.${AWS_REGION}.amazonaws.com/v1/logs
-        max_idle_conns: 100
         metrics_endpoint: ""
         profiles_endpoint: ""
         retry_on_failure:
@@ -55,9 +67,10 @@ exporters:
         compression: gzip
         encoding: proto
         force_attempt_http2: true
-        idle_conn_timeout: 1m30s
+        keepalive:
+            idle_conn_timeout: 1m30s
+            max_idle_conns: 100
         logs_endpoint: ""
-        max_idle_conns: 100
         metrics_endpoint: https://monitoring.${AWS_REGION}.amazonaws.com/v1/metrics
         profiles_endpoint: ""
         retry_on_failure:
@@ -76,9 +89,10 @@ exporters:
         compression: gzip
         encoding: proto
         force_attempt_http2: true
-        idle_conn_timeout: 1m30s
+        keepalive:
+            idle_conn_timeout: 1m30s
+            max_idle_conns: 100
         logs_endpoint: ""
-        max_idle_conns: 100
         metrics_endpoint: ""
         profiles_endpoint: https://monitoring.${AWS_REGION}.amazonaws.com/v1development/profiles
         retry_on_failure:
@@ -105,9 +119,10 @@ exporters:
         compression: gzip
         encoding: proto
         force_attempt_http2: true
-        idle_conn_timeout: 1m30s
+        keepalive:
+            idle_conn_timeout: 1m30s
+            max_idle_conns: 100
         logs_endpoint: ""
-        max_idle_conns: 100
         metrics_endpoint: ""
         profiles_endpoint: ""
         retry_on_failure:
@@ -329,7 +344,6 @@ processors:
                   key: resource.opentelemetry.io/service.version
                   key_regex: ""
                   tag_name: resource.opentelemetry.io/service.version
-            deployment_name_from_replicaset: false
             labels:
                 - from: pod
                   key: app.kubernetes.io/instance
@@ -365,8 +379,10 @@ processors:
         kube_api_qps: 0
         kube_config_path: ""
         passthrough: false
+        pod_delete_grace_period: 2m0s
         wait_for_metadata: false
         wait_for_metadata_timeout: 10s
+        watch_sync_period: 5m0s
     k8s_attributes/profiles:
         auth_type: serviceAccount
         context: ""
@@ -390,7 +406,6 @@ processors:
                   key: resource.opentelemetry.io/service.version
                   key_regex: ""
                   tag_name: resource.opentelemetry.io/service.version
-            deployment_name_from_replicaset: false
             labels:
                 - from: pod
                   key: app.kubernetes.io/instance
@@ -433,8 +448,10 @@ processors:
             - sources:
                 - from: connection
                   name: ""
+        pod_delete_grace_period: 2m0s
         wait_for_metadata: false
         wait_for_metadata_timeout: 10s
+        watch_sync_period: 5m0s
     k8sattributes/cw_k8s_ci_v0_node:
         auth_type: serviceAccount
         exclude:
@@ -481,14 +498,14 @@ processors:
                 - from: resource_attribute
                   name: k8s.namespace.name
     metricstarttime/cw_k8s_ci_v0: null
-    resourcedetection/cw_k8s_ci_v0:
+    resource_detection/cw_k8s_ci_v0:
         detectors:
             - eks
             - env
             - ec2
         override: false
         timeout: 2s
-    resourcedetection/opentelemetry:
+    resource_detection/opentelemetry:
         akamai:
             resource_attributes:
                 cloud.account.id:
@@ -563,6 +580,56 @@ processors:
                 host.name:
                     enabled: true
             tags: []
+        azureappservice:
+            resource_attributes:
+                azure.app_service.instance.id:
+                    enabled: true
+                azure.resource_group.name:
+                    enabled: true
+                cloud.account.id:
+                    enabled: true
+                cloud.platform:
+                    enabled: true
+                cloud.provider:
+                    enabled: true
+                cloud.region:
+                    enabled: true
+                cloud.resource_id:
+                    enabled: true
+                deployment.environment.name:
+                    enabled: true
+                service.name:
+                    enabled: true
+        azurecontainerapps:
+            resource_attributes:
+                azure.container_app.instance.id:
+                    enabled: true
+                cloud.platform:
+                    enabled: true
+                cloud.provider:
+                    enabled: true
+                service.name:
+                    enabled: true
+        azurefunctions:
+            resource_attributes:
+                azure.resource_group.name:
+                    enabled: true
+                cloud.account.id:
+                    enabled: true
+                cloud.platform:
+                    enabled: true
+                cloud.provider:
+                    enabled: true
+                cloud.region:
+                    enabled: true
+                cloud.resource_id:
+                    enabled: true
+                deployment.environment.name:
+                    enabled: false
+                faas.instance:
+                    enabled: true
+                service.name:
+                    enabled: true
         consul:
             address: ""
             datacenter: ""
@@ -686,10 +753,15 @@ processors:
                     enabled: true
                 deployment.environment:
                     enabled: true
+                deployment.environment.name:
+                    enabled: true
+                deployment.id:
+                    enabled: true
                 service.instance.id:
                     enabled: true
                 service.version:
                     enabled: true
+        fail_on_missing_metadata: false
         force_attempt_http2: true
         gcp:
             labels: []
@@ -805,8 +877,21 @@ processors:
                     enabled: true
                 host.type:
                     enabled: true
-        idle_conn_timeout: 1m30s
         ignore_detector_errors: true
+        k8s_api:
+            auth_type: serviceAccount
+            context: ""
+            kube_api_burst: 0
+            kube_api_qps: 0
+            kube_config_path: ""
+            node_from_env_var: ""
+            resource_attributes:
+                k8s.cluster.uid:
+                    enabled: true
+                k8s.node.name:
+                    enabled: true
+                k8s.node.uid:
+                    enabled: true
         k8snode:
             auth_type: serviceAccount
             context: ""
@@ -815,10 +900,15 @@ processors:
             kube_config_path: ""
             node_from_env_var: ""
             resource_attributes:
+                k8s.cluster.uid:
+                    enabled: true
                 k8s.node.name:
                     enabled: true
                 k8s.node.uid:
                     enabled: true
+        keepalive:
+            idle_conn_timeout: 1m30s
+            max_idle_conns: 100
         kubeadm:
             auth_type: serviceAccount
             context: ""
@@ -850,7 +940,6 @@ processors:
                     enabled: true
                 faas.version:
                     enabled: true
-        max_idle_conns: 100
         nova:
             fail_on_missing_metadata: false
             labels: []
@@ -892,6 +981,8 @@ processors:
                     enabled: true
                 cloud.region:
                     enabled: true
+                cloud.resource_id:
+                    enabled: false
                 host.id:
                     enabled: true
                 host.name:
@@ -904,6 +995,13 @@ processors:
                     enabled: true
         override: true
         refresh_interval: 0s
+        retry:
+            enabled: true
+            initial_interval: 1s
+            max_elapsed_time: 0s
+            max_interval: 30s
+            multiplier: 2
+            randomization_factor: 0.5
         scaleway:
             resource_attributes:
                 cloud.account.id:
@@ -1015,6 +1113,7 @@ processors:
         metric_statements:
             - context: resource
               error_mode: ignore
+              shared_cache: false
               statements:
                 - set(resource.schema_url, "")
         profile_statements: []
@@ -1026,6 +1125,7 @@ processors:
         metric_statements:
             - context: resource
               error_mode: ignore
+              shared_cache: false
               statements:
                 - delete_matching_keys(resource.attributes, "^host.") where resource.attributes["_tmp.cluster_scoped"] == true
                 - delete_key(resource.attributes, "cloud.availability_zone") where resource.attributes["_tmp.cluster_scoped"] == true
@@ -1267,6 +1367,7 @@ processors:
         log_statements:
             - context: resource
               error_mode: ignore
+              shared_cache: false
               statements:
                 - set(resource.attributes["service.namespace"], resource.attributes["resource.opentelemetry.io/service.namespace"]) where resource.attributes["service.namespace"] == nil and resource.attributes["resource.opentelemetry.io/service.namespace"] != nil
                 - set(resource.attributes["service.namespace"], resource.attributes["k8s.namespace.name"]) where resource.attributes["service.namespace"] == nil and resource.attributes["k8s.namespace.name"] != nil
@@ -1315,6 +1416,7 @@ processors:
         metric_statements:
             - context: resource
               error_mode: ignore
+              shared_cache: false
               statements:
                 - set(resource.attributes["service.namespace"], resource.attributes["resource.opentelemetry.io/service.namespace"]) where resource.attributes["service.namespace"] == nil and resource.attributes["resource.opentelemetry.io/service.namespace"] != nil
                 - set(resource.attributes["service.namespace"], resource.attributes["k8s.namespace.name"]) where resource.attributes["service.namespace"] == nil and resource.attributes["k8s.namespace.name"] != nil
@@ -1363,6 +1465,7 @@ processors:
         profile_statements:
             - context: resource
               error_mode: ignore
+              shared_cache: false
               statements:
                 - set(resource.attributes["service.namespace"], resource.attributes["resource.opentelemetry.io/service.namespace"]) where resource.attributes["service.namespace"] == nil and resource.attributes["resource.opentelemetry.io/service.namespace"] != nil
                 - set(resource.attributes["service.namespace"], resource.attributes["k8s.namespace.name"]) where resource.attributes["service.namespace"] == nil and resource.attributes["k8s.namespace.name"] != nil
@@ -1411,6 +1514,7 @@ processors:
         trace_statements:
             - context: resource
               error_mode: ignore
+              shared_cache: false
               statements:
                 - set(resource.attributes["service.namespace"], resource.attributes["resource.opentelemetry.io/service.namespace"]) where resource.attributes["service.namespace"] == nil and resource.attributes["resource.opentelemetry.io/service.namespace"] != nil
                 - set(resource.attributes["service.namespace"], resource.attributes["k8s.namespace.name"]) where resource.attributes["service.namespace"] == nil and resource.attributes["k8s.namespace.name"] != nil
@@ -1462,6 +1566,7 @@ processors:
         log_statements:
             - context: resource
               error_mode: ignore
+              shared_cache: false
               statements:
                 - delete_key(resource.attributes, "aws.log.group.name")
                 - delete_key(resource.attributes, "aws.log.stream.name")
@@ -1475,6 +1580,7 @@ processors:
         log_statements:
             - context: resource
               error_mode: ignore
+              shared_cache: false
               statements:
                 - set(resource.schema_url, "")
         metric_statements: []
@@ -1486,6 +1592,7 @@ processors:
         log_statements:
             - context: resource
               error_mode: ignore
+              shared_cache: false
               statements:
                 - set(resource.attributes["aws.log.group.name"], Concat(["/aws/cwagent", resource.attributes["k8s.cluster.name"], resource.attributes["aws.log.source"]], "/")) where resource.attributes["aws.log.group.name"] == nil and resource.attributes["k8s.cluster.name"] != nil and resource.attributes["aws.log.source"] != nil
                 - set(resource.attributes["aws.log.group.name"], Concat(["/aws/cwagent", resource.attributes["k8s.cluster.name"], "default"], "/")) where resource.attributes["aws.log.group.name"] == nil and resource.attributes["k8s.cluster.name"] != nil
@@ -1503,6 +1610,7 @@ processors:
         log_statements:
             - context: resource
               error_mode: ignore
+              shared_cache: false
               statements:
                 - set(resource.attributes["aws.log.source"], "otlp") where resource.attributes["aws.log.source"] == nil
         metric_statements: []
@@ -1514,24 +1622,28 @@ processors:
         log_statements:
             - context: scope
               error_mode: ignore
+              shared_cache: false
               statements:
                 - set(scope.attributes["cloudwatch.source"], "cloudwatch-agent")
                 - set(scope.attributes["cloudwatch.solution"], "otel-otlp")
         metric_statements:
             - context: scope
               error_mode: ignore
+              shared_cache: false
               statements:
                 - set(scope.attributes["cloudwatch.source"], "cloudwatch-agent")
                 - set(scope.attributes["cloudwatch.solution"], "otel-otlp")
         profile_statements:
             - context: scope
               error_mode: ignore
+              shared_cache: false
               statements:
                 - set(scope.attributes["cloudwatch.source"], "cloudwatch-agent")
                 - set(scope.attributes["cloudwatch.solution"], "otel-otlp")
         trace_statements:
             - context: scope
               error_mode: ignore
+              shared_cache: false
               statements:
                 - set(scope.attributes["cloudwatch.source"], "cloudwatch-agent")
                 - set(scope.attributes["cloudwatch.solution"], "otel-otlp")
@@ -1541,27 +1653,31 @@ processors:
         log_statements:
             - context: resource
               error_mode: ignore
+              shared_cache: false
               statements:
                 - set(resource.attributes["k8s.cluster.name"], "test-cluster")
         metric_statements:
             - context: resource
               error_mode: ignore
+              shared_cache: false
               statements:
                 - set(resource.attributes["k8s.cluster.name"], "test-cluster")
         profile_statements:
             - context: resource
               error_mode: ignore
+              shared_cache: false
               statements:
                 - set(resource.attributes["k8s.cluster.name"], "test-cluster")
         trace_statements:
             - context: resource
               error_mode: ignore
+              shared_cache: false
               statements:
                 - set(resource.attributes["k8s.cluster.name"], "test-cluster")
 receivers:
     awsefareceiver/cw_k8s_ci_v0:
         collection_interval: 30s
-    kubeletstats/cw_k8s_ci_v0:
+    kubelet_stats/cw_k8s_ci_v0:
         auth_type: serviceAccount
         collection_interval: 30s
         endpoint: https://${HOST_IP}:10250
@@ -1611,14 +1727,12 @@ receivers:
     otlp/http_127_0_0_1_4318:
         protocols:
             http:
-                cors: null
                 endpoint: 127.0.0.1:4318
-                idle_timeout: 0s
-                keep_alives_enabled: true
+                keepalive:
+                    idle_timeout: 1m0s
                 logs_url_path: /v1/logs
                 metrics_url_path: /v1/metrics
                 read_header_timeout: 0s
-                tls: null
                 traces_url_path: /v1/traces
                 transport: tcp
                 write_timeout: 0s
@@ -1741,7 +1855,6 @@ receivers:
 service:
     extensions:
         - sigv4auth/monitoring
-        - agenthealth/opentelemetry_profiles
         - agenthealth/opentelemetry_metrics
         - sigv4auth/logs
         - awscloudwatchlogsprovisioner
@@ -1749,13 +1862,14 @@ service:
         - agenthealth/opentelemetry_logs
         - sigv4auth/xray
         - agenthealth/opentelemetry_traces
+        - agenthealth/opentelemetry_profiles
         - server
     pipelines:
         logs/opentelemetry:
             exporters:
                 - otlp_http/logs
             processors:
-                - resourcedetection/opentelemetry
+                - resource_detection/opentelemetry
                 - k8s_attributes/opentelemetry
                 - transform/set_cluster_name
                 - transform/identity
@@ -1789,7 +1903,7 @@ service:
                 - transform/cw_k8s_ci_v0_cadvisor_promote
                 - transform/cw_k8s_ci_v0_set_node_name
                 - transform/cw_k8s_ci_v0_promote_node_name
-                - resourcedetection/cw_k8s_ci_v0
+                - resource_detection/cw_k8s_ci_v0
                 - transform/cw_k8s_ci_v0_set_cloud_resource_id
                 - k8sattributes/cw_k8s_ci_v0_node
                 - k8sattributes/cw_k8s_ci_v0_pod
@@ -1813,7 +1927,7 @@ service:
                 - transform/cw_k8s_ci_v0_promote_node_name
                 - k8sattributes/cw_k8s_ci_v0_node
                 - transform/cw_k8s_ci_v0_set_scope_dcgm
-                - resourcedetection/cw_k8s_ci_v0
+                - resource_detection/cw_k8s_ci_v0
                 - transform/cw_k8s_ci_v0_set_cloud_resource_id
                 - transform/cw_k8s_ci_v0_set_workload
                 - awsattributelimit/cw_k8s_ci_v0
@@ -1830,7 +1944,7 @@ service:
                 - transform/cw_k8s_ci_v0_ebs_csi_promote
                 - transform/cw_k8s_ci_v0_set_node_name
                 - transform/cw_k8s_ci_v0_promote_node_name
-                - resourcedetection/cw_k8s_ci_v0
+                - resource_detection/cw_k8s_ci_v0
                 - transform/cw_k8s_ci_v0_set_cloud_resource_id
                 - k8sattributes/cw_k8s_ci_v0_node
                 - transform/cw_k8s_ci_v0_set_scope_ebs_csi
@@ -1852,7 +1966,7 @@ service:
                 - transform/cw_k8s_ci_v0_promote_node_name
                 - k8sattributes/cw_k8s_ci_v0_pod
                 - k8sattributes/cw_k8s_ci_v0_node
-                - resourcedetection/cw_k8s_ci_v0
+                - resource_detection/cw_k8s_ci_v0
                 - transform/cw_k8s_ci_v0_set_cloud_resource_id
                 - transform/cw_k8s_ci_v0_set_workload
                 - awsattributelimit/cw_k8s_ci_v0
@@ -1865,14 +1979,14 @@ service:
                 - metricstarttime/cw_k8s_ci_v0
                 - transform/cw_k8s_ci_v0_set_scope_kubeletstats
                 - transform/cw_k8s_ci_v0_set_cluster_name
-                - resourcedetection/cw_k8s_ci_v0
+                - resource_detection/cw_k8s_ci_v0
                 - transform/cw_k8s_ci_v0_set_cloud_resource_id
                 - k8sattributes/cw_k8s_ci_v0_pod
                 - k8sattributes/cw_k8s_ci_v0_node
                 - transform/cw_k8s_ci_v0_set_workload
                 - awsattributelimit/cw_k8s_ci_v0
             receivers:
-                - kubeletstats/cw_k8s_ci_v0
+                - kubelet_stats/cw_k8s_ci_v0
         metrics/cw_k8s_ci_v0_lis_csi_node:
             exporters:
                 - forward/opentelemetry
@@ -1884,7 +1998,7 @@ service:
                 - transform/cw_k8s_ci_v0_lis_csi_promote
                 - transform/cw_k8s_ci_v0_set_node_name
                 - transform/cw_k8s_ci_v0_promote_node_name
-                - resourcedetection/cw_k8s_ci_v0
+                - resource_detection/cw_k8s_ci_v0
                 - transform/cw_k8s_ci_v0_set_cloud_resource_id
                 - k8sattributes/cw_k8s_ci_v0_node
                 - transform/cw_k8s_ci_v0_set_scope_lis_csi
@@ -1909,7 +2023,7 @@ service:
                 - k8sattributes/cw_k8s_ci_v0_pod
                 - transform/cw_k8s_ci_v0_set_node_name
                 - transform/cw_k8s_ci_v0_promote_node_name
-                - resourcedetection/cw_k8s_ci_v0
+                - resource_detection/cw_k8s_ci_v0
                 - transform/cw_k8s_ci_v0_set_cloud_resource_id
                 - k8sattributes/cw_k8s_ci_v0_node
                 - transform/cw_k8s_ci_v0_set_scope_neuron_monitor
@@ -1927,7 +2041,7 @@ service:
                 - transform/cw_k8s_ci_v0_set_cluster_name
                 - transform/cw_k8s_ci_v0_set_node_name
                 - transform/cw_k8s_ci_v0_promote_node_name
-                - resourcedetection/cw_k8s_ci_v0
+                - resource_detection/cw_k8s_ci_v0
                 - transform/cw_k8s_ci_v0_set_cloud_resource_id
                 - k8sattributes/cw_k8s_ci_v0_node
                 - transform/cw_k8s_ci_v0_set_scope_node_exporter
@@ -1939,7 +2053,7 @@ service:
             exporters:
                 - otlp_http/metrics
             processors:
-                - resourcedetection/opentelemetry
+                - resource_detection/opentelemetry
                 - k8s_attributes/opentelemetry
                 - transform/set_cluster_name
                 - transform/identity
@@ -1949,7 +2063,7 @@ service:
                 - batch/opentelemetry_metrics
             receivers:
                 - forward/opentelemetry
-                - spanmetrics/opentelemetry
+                - span_metrics/opentelemetry
         metrics/otlp:
             exporters:
                 - forward/opentelemetry
@@ -1963,7 +2077,7 @@ service:
                 - otlp_http/profiles
             processors:
                 - transform/otlp_scope
-                - resourcedetection/opentelemetry
+                - resource_detection/opentelemetry
                 - k8s_attributes/profiles
                 - transform/set_cluster_name
                 - transform/identity
@@ -1973,9 +2087,9 @@ service:
         traces/opentelemetry:
             exporters:
                 - otlp_http/traces
-                - spanmetrics/opentelemetry
+                - span_metrics/opentelemetry
             processors:
-                - resourcedetection/opentelemetry
+                - resource_detection/opentelemetry
                 - k8s_attributes/opentelemetry
                 - transform/set_cluster_name
                 - transform/identity

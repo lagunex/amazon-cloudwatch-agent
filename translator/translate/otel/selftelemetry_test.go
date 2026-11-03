@@ -170,9 +170,9 @@ func TestSelfTelemetryStampsNodeViaResource(t *testing.T) {
 	got, err := TranslateWithoutValidation(selfTelemetryInput(map[string]any{"enabled": true}), "linux")
 	require.NoError(t, err)
 
-	require.Contains(t, telemetryOf(t, got).Resource, "NodeName")
-	require.NotNil(t, telemetryOf(t, got).Resource["NodeName"])
-	assert.Equal(t, "${env:K8S_NODE_NAME}", *telemetryOf(t, got).Resource["NodeName"])
+	nodeName, ok := resourceAttr(telemetryOf(t, got).Resource, "NodeName")
+	require.True(t, ok)
+	assert.Equal(t, "${env:K8S_NODE_NAME}", nodeName)
 
 	require.Len(t, telemetryOf(t, got).Metrics.Readers, 1)
 	prom := telemetryOf(t, got).Metrics.Readers[0].Pull.Exporter.Prometheus
@@ -188,7 +188,8 @@ func TestSelfTelemetryOffLeavesNoResource(t *testing.T) {
 
 	got, err := TranslateWithoutValidation(selfTelemetryInput(nil), "linux")
 	require.NoError(t, err)
-	assert.NotContains(t, telemetryOf(t, got).Resource, "NodeName")
+	_, ok := resourceAttr(telemetryOf(t, got).Resource, "NodeName")
+	assert.False(t, ok)
 }
 
 // TestSelfTelemetryOnEC2UsesInstanceID is the EC2/off-Kubernetes contract: there is no operator-injected
@@ -221,8 +222,9 @@ func TestSelfTelemetryOnEC2UsesInstanceID(t *testing.T) {
 
 	// The node label carries the resolved instance ID (not a K8S_NODE_NAME env ref), and the reader
 	// still promotes it as a constant label.
-	require.Contains(t, telemetryOf(t, got).Resource, "NodeName")
-	assert.Equal(t, "i-1234567890abcdef0", *telemetryOf(t, got).Resource["NodeName"])
+	nodeName, ok := resourceAttr(telemetryOf(t, got).Resource, "NodeName")
+	require.True(t, ok)
+	assert.Equal(t, "i-1234567890abcdef0", nodeName)
 	require.NotNil(t, telemetryOf(t, got).Metrics.Readers[0].Pull.Exporter.Prometheus.WithResourceConstantLabels)
 }
 
@@ -250,7 +252,19 @@ func TestSelfTelemetryOnNonEC2FallsBackToHostname(t *testing.T) {
 	}, "linux")
 	require.NoError(t, err)
 
-	require.Contains(t, telemetryOf(t, got).Resource, "NodeName")
-	assert.Equal(t, "onprem-host-7", *telemetryOf(t, got).Resource["NodeName"])
-	assert.NotEqual(t, translateutil.UnknownInstanceID, *telemetryOf(t, got).Resource["NodeName"])
+	nodeName, ok := resourceAttr(telemetryOf(t, got).Resource, "NodeName")
+	require.True(t, ok)
+	assert.Equal(t, "onprem-host-7", nodeName)
+	assert.NotEqual(t, translateutil.UnknownInstanceID, nodeName)
+}
+
+// resourceAttr returns the string value of a declarative service telemetry resource attribute.
+func resourceAttr(res otelconftelemetry.ResourceConfig, name string) (string, bool) {
+	for _, attr := range res.Attributes {
+		if attr.Name == name {
+			v, ok := attr.Value.(string)
+			return v, ok
+		}
+	}
+	return "", false
 }
